@@ -1,0 +1,72 @@
+apiVersion: kubedb.com/v1alpha1
+kind: Postgres
+metadata:
+  name: timescaledb
+  namespace: default
+spec:
+  version: timescaledb
+  configSource:
+    configMap:
+      name: timescale-pg-custom-config
+  replicas: 4
+  standbyMode: Hot
+  streamingMode: asynchronous
+  leaderElection:
+    leaseDurationSeconds: 10
+    renewDeadlineSeconds: 5
+    retryPeriodSeconds: 2
+  archiver:
+    storage:
+      storageSecretName: s3-secret
+      s3:
+        bucket: kubedb-argus
+  storageType: "Durable"
+  storage:
+    storageClassName: fast
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 2000Gi
+  backupSchedule:
+    cronExpression: "@every 4h"
+    storageSecretName: s3-secret
+    s3:
+      bucket: kubedb-argus
+  monitor:
+    agent: prometheus.io/coreos-operator
+    prometheus:
+      namespace: monitoring
+      labels:
+        k8s-app: prometheus
+      interval: 10s
+  podTemplate:
+    spec:
+      imagePullPolicy: Always
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: kubedb.com/name
+                operator: In
+                values:
+                - timescaledb
+            topologyKey: "kubernetes.io/hostname"
+  serviceTemplate:
+    spec:
+      type: LoadBalancer
+      ports:
+      - name:  http
+        port:  5432
+        targetPort: http
+  replicaServiceTemplate:
+    spec:
+      type: LoadBalancer
+      ports:
+      - name:  http
+        port:  5432
+        targetPort: http
+  updateStrategy:
+    type: RollingUpdate
+  terminationPolicy: "Pause"

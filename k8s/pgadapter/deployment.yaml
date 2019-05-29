@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: adapter
+  name: adapter
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: adapter
+  template:
+    metadata:
+      labels:
+        app: adapter
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: kubedb.com/name
+                operator: In
+                values:
+                - metrics
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - image: timescale/prometheus-postgresql-adapter:latest
+        imagePullPolicy: Always
+        name: adapter
+        args:
+        - "-pg.host=timescale"
+        - "-pg.user=postgres"
+        - "-pg.password=tTrK8_Jm-0C10dGy"
+        - "-pg.database=postgres"
+        - "-pg.prometheus-log-samples"
+        - "-leader-election.pg-advisory-lock-id=1"
+        - "-leader-election.pg-advisory-lock.prometheus-timeout=6s"
+        ports:
+        - containerPort: 9201
+          name: http
+          protocol: TCP
+          

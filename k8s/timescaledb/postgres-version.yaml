@@ -1,0 +1,15 @@
+apiVersion: catalog.kubedb.com/v1alpha1
+kind: PostgresVersion
+metadata:
+  name: "timescaledb"
+spec:
+  version: "10.2"
+  podSecurityPolicies:
+    databasePolicyName: postgres-db
+    snapshotterPolicyName: postgres-snapshot
+  db:
+    image: "cosmicrocks/timescaledb"
+  exporter:
+    image: "kubedb/postgres_exporter:v0.4.6"
+  tools:
+    image: "kubedb/postgres-tools:10.2-v2"
