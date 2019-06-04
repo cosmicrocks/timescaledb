@@ -21,6 +21,7 @@ data:
     work_mem = 13107kB
     min_wal_size = 4GB
     max_wal_size = 8GB
+    max_wal_senders = 20
     max_worker_processes = 4
     max_parallel_workers_per_gather = 2
     max_parallel_workers = 4
