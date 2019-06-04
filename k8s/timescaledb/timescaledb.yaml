@@ -1,0 +1,55 @@
+apiVersion: kubedb.com/v1alpha1
+kind: Postgres
+metadata:
+  name: timescaledb
+  namespace: default
+spec:
+  version: timescaledb
+  configSource:
+    configMap:
+      name: tsdb-pg-s-4vcpu-8gb-config
+  replicas: 3
+  standbyMode: Hot
+  streamingMode: asynchronous
+  leaderElection:
+    leaseDurationSeconds: 10
+    renewDeadlineSeconds: 5
+    retryPeriodSeconds: 2
+  storageType: "Ephemeral"
+  monitor:
+    agent: prometheus.io/coreos-operator
+    prometheus:
+      namespace: monitoring
+      labels:
+        k8s-app: prometheus
+      interval: 5s
+  podTemplate:
+    spec:
+      imagePullPolicy: Always
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: kubedb.com/name
+                operator: In
+                values:
+                - timescaledb
+            topologyKey: "kubernetes.io/hostname"
+  serviceTemplate:
+    spec:
+      type: ClusterIP
+      ports:
+      - name:  http
+        port:  5432
+        targetPort: http
+  replicaServiceTemplate:
+    spec:
+      type: ClusterIP
+      ports:
+      - name:  http
+        port:  5432
+        targetPort: http
+  updateStrategy:
+    type: RollingUpdate
+  terminationPolicy: "WipeOut"

@@ -7,7 +7,7 @@ spec:
   version: timescaledb
   configSource:
     configMap:
-      name: timescale-pg-custom-config
+      name: tsdb-pg-s-4vcpu-8gb-config
   replicas: 4
   standbyMode: Hot
   streamingMode: asynchronous
