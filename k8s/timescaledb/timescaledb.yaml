@@ -5,9 +5,6 @@ metadata:
   namespace: default
 spec:
   version: timescaledb
-  configSource:
-    configMap:
-      name: tsdb-pg-s-4vcpu-8gb-config
   replicas: 3
   standbyMode: Hot
   streamingMode: asynchronous
