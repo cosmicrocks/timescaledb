@@ -12,6 +12,8 @@ spec:
     leaseDurationSeconds: 10
     renewDeadlineSeconds: 5
     retryPeriodSeconds: 2
+  databaseSecret:
+    secretName: timescaledb-auth
   storageType: "Ephemeral"
   monitor:
     agent: prometheus.io/coreos-operator

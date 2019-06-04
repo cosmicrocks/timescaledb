@@ -1,9 +1,9 @@
 apiVersion: v1
 data:
-  POSTGRES_PASSWORD: bm90QHNlY3JldA== # not@user
-  POSTGRES_USER: bm90QHVzZXI=         # not@secret
+  POSTGRES_PASSWORD: bm90QHNlY3JldA==  # not@secret
+  POSTGRES_USER: cG9zdGdyZXM= # postgres
 kind: Secret
 metadata:
-  name: timescale-auth
+  name: timescaledb-auth
   namespace: default
 type: Opaque
