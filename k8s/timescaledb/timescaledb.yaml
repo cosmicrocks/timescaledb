@@ -21,7 +21,7 @@ spec:
     prometheus:
       namespace: monitoring
       labels:
-        k8s-app: prometheus
+        app: prometheus
       interval: 5s
   podTemplate:
     spec:
