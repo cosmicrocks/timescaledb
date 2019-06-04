@@ -4,7 +4,7 @@ metadata:
   labels:
     app: pgadmin
   name: pgadmin
-  namespace: monitoring
+  namespace: default
 spec:
   replicas: 1
   selector:
