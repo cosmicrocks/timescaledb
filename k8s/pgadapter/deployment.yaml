@@ -30,9 +30,9 @@ spec:
         imagePullPolicy: Always
         name: adapter
         args:
-        - "-pg.host=timescale"
+        - "-pg.host=timescaledb"
         - "-pg.user=postgres"
-        - "-pg.password=tTrK8_Jm-0C10dGy"
+        - "-pg.password=not@secret"
         - "-pg.database=postgres"
         - "-pg.prometheus-log-samples"
         - "-leader-election.pg-advisory-lock-id=1"
