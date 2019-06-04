@@ -8,7 +8,7 @@ spec:
     databasePolicyName: postgres-db
     snapshotterPolicyName: postgres-snapshot
   db:
-    image: "cosmicrocks/timescaledb"
+    image: "cosmicrocks/timescaledb:latest"
   exporter:
     image: "kubedb/postgres_exporter:v0.4.6"
   tools:
