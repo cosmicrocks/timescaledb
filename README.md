@@ -11,26 +11,96 @@ There are so many ways these days to get up and running with Kubernetes. Our set
 
 
 we will start by creating our main cluster on digitalocean
-<script src="https://gist.github.com/yokiworks/b274eeea4fa347c9feea9eb1899955b2.js"></script>
+```
+### create new cluster and call it cosmic ###
+doctl kubernetes cluster create cosmic
+
+### add a secondary node-pool with bigger droplets for timescale ###
+doctl kubernetes cluster node-pool create cosmic --name tsdb --count 4 --size s-6vcpu-16gb
+
+### delete the default node-pool ###
+doctl kubernetes cluster node-pool delete cosmic cosmic-default-pool
+
+### list node-pools ###
+doctl kubernetes cluster node-pool list cosmic
+
+### save kubeonfig ###
+doctl kubernetes cluster kubeconfig show cosmic > $HOME/cosmic.config
+
+### check that nodes are running ###
+kubectl get nodes
+```
 
 ## Prometheus operator and kube-prometheus
 One of the great things about the Kubernetes architecture that it’s a system composed from independent components decoupled from each other this is very nice of course for the right reasons but it makes the task of properly setting up monitoring and alerting for all of the various cluster components not so easy as you figure out very quickly that these components generate a lot of metrics and that’s even before we started talking about our own services.
 
 This is where prometheus operator and the awesome kube-prometheus projects comes to the rescue saving a lot of time getting up and running with a production ready setup.
+```
+### (you might need to run this twice if it fails on the first run)  ###
+kubectl apply -k https://github.com/cosmicrocks/monitoring.git
 
-<script src="https://gist.github.com/yokiworks/7896285091d764e08f6d883fc162cb39.js"></script>
+### port-forward to grafana ###
+kubectl -n monitoring port-forward $(kubectl -n monitoring get pods -l app=grafana -o jsonpath='{.items[*].metadata.name}') 3000:3000 &
 
+and browse to https://127.0.0.1:3000
+(username and password are 'admin')
+```
 
 ## KubeDB
 this operator will take care of our databases in production hiding all the necessary extra complexity that comes with replication, backups, snapshots and of course monitoring. I will not advise yet to throw away your managed database holding your critical business data on your favorite cloud provider but for storing metrics and especially when experimenting with new cool stuff I like the flexibility of running my own.
+```
+### the good guys at kubedb provided us with this easy one liner ###
+curl -fsSL https://raw.githubusercontent.com/kubedb/cli/0.12.0/hack/deploy/kubedb.sh | bash
 
-<script src="https://gist.github.com/yokiworks/a1c52ed81ca96a055961076a4df5c829.js"></script>
+### verify that the setup is successful ###
+kubectl get pods --all-namespaces -l app=kubedb
+kubectl get crd -l app=kubedb
+```
 
 
 ## Timescaledb
 this is the fun part here we are telling kubedb to start a postgres cluster with our custom postgres image that is compiled with timescaledb, then we enable timescaledb and pg_prometheus extensions and last step we run the pg-prometheus-adapter
+```
+### deploy custom timescaledb postgres image ###
+kubectl apply -f https://raw.githubusercontent.com/cosmicrocks/timescaledb/master/k8s/timescaledb/postgres-version.yaml
 
-<script src="https://gist.github.com/yokiworks/8f4f3a5cea1a14a3838568f96c7fb3f0.js"></script>
+### deploy custom postgres user password ###
+kubectl apply -f https://raw.githubusercontent.com/cosmicrocks/timescaledb/master/k8s/timescaledb/timescale-auth.yaml
+
+### deploy timescale postgres kubedb crd ###
+kubectl apply -f https://raw.githubusercontent.com/cosmicrocks/timescaledb/master/k8s/timescaledb/timescale.yaml
+
+### deploy pg_admin ###
+kubectl apply -f https://raw.githubusercontent.com/cosmicrocks/timescaledb/master/k8s/pgadmin/deployment.yaml
+
+## port-forward to pgadmin ###
+kubectl port-forward $(kubectl get pods -l app=pgadmin -o jsonpath='{.items[*].metadata.name}') 8081:80 &
+
+and browse to https://127.0.0.1:8081 
+(username and password are 'admin')
+
+### Enable timescaledb and pg_prometheus extensions ###
+1) connect to the database using a temp psql pod
+kubectl run \
+  temp-postgres-client \
+  --image launcher.gcr.io/google/postgresql9 \
+  --rm --attach --restart=Never \
+  -it \
+  -- sh -c 'exec psql --host timescaledb --dbname postgres --username postgres --password'
+
+!!! when you are see this message: "If you don't see a command prompt, try pressing enter." 
+type the postgres password 'not@secret' and hit enter, this should get you into the postgres=# comand prompt
+
+2) enable extensions
+create extension timescaledb;
+create extension pg_prometheus;
+
+(hit ctrl+d to exit and delete the pod)
+
+### deploy postgres prometheus adapter ###
+kubectl apply -f https://raw.githubusercontent.com/cosmicrocks/timescaledb/master/k8s/pgadapter/deployment.yaml
+kubectl apply -f https://raw.githubusercontent.com/cosmicrocks/timescaledb/master/k8s/pgadapter/svc.yaml
+```
 
 
 if all is working you should see now that our prometheus instances on the cluster are writing metrics, you can watch the adapter logs: “kubetail -l app=adapter” also you will see the database connections on the postgres-overview dashboard on grafana at: 127.0.0.1:3000
